@@ -3,7 +3,20 @@
 const videoElement = document.querySelector('video');
 
 const startBtn = document.getElementById('startBtn');
+
+startBtn.onclick = e => {
+    mediaRecorder.start();
+    startBtn.classList.add('is-danger');
+    startBtn.innerText = 'Recording';
+}
 const stopBtn = document.getElementById('stopBtn');
+
+stopBtn.onclick = e => {
+    mediaRecorder.stop();
+    startBtn.classList.remove('is-danger');
+    startBtn.innerText = 'Start';
+}
+
 const videoSelectBtn = document.getElementById('videoSelectBtn');
 videoSelectBtn.onclick = getVideoSources;
 
@@ -29,6 +42,9 @@ async function getVideoSources() {
     videoOptionsMenu.popup();
 }
 
+let mediaRecorder;
+const recordedChunks = [];
+
 // Change the window to record
 
 async function selectSource(source) {
@@ -52,4 +68,41 @@ async function selectSource(source) {
 
     videoElement.srcObject = stream;
     videoElement.play();
+
+    // Create media recorder
+
+    const options = { mimeType: 'video/webm; codecs=vp9'};
+    mediaRecorder = new MediaRecorder(stream, options);
+
+    // Register event handlers
+
+    mediaRecorder.ondataavailable = handleDataAvailable;
+    mediaRecorder.onstop = handleStop;
+}
+
+function handleDataAvailable(e) {
+    console.log('video data available');
+    recordedChunks.push(e.data);
+}
+
+const { dialog } = remote;
+
+const {writeFile} = require('fs');
+
+// Saves the video file on stop
+async function handleStop(e) {
+    const blob = new Blob(recordedChunks, {
+        type: 'video/webm; codecs=vp9'
+    });
+
+    const buffer = Buffer.from(await blob.arrayBuffer());
+
+    const {filePath} = await dialog.showSaveDialog({
+        buttonLabel: 'Save Video',
+        defaultPath: `vid-${Date.now()}.webm`
+    });
+
+    console.log(filePath);
+
+    writeFile(filePath, buffer, () => console.log('Video saved successfully!'));
 }
