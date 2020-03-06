@@ -21,10 +21,35 @@ async function getVideoSources() {
         inputSources.map(source => {
             return {
                 label: source.name,
-                click: () => selectSource()
+                click: () => selectSource(source)
             };
         })
     );
 
     videoOptionsMenu.popup();
+}
+
+// Change the window to record
+
+async function selectSource(source) {
+    videoSelectBtn.innerText = source.name;
+
+    const constraints = {
+        audio: false,
+        video : {
+            mandatory: {
+                chromeMediaSource: 'desktop',
+                chromeMediaSourceId: source.id
+            }
+        }
+    };
+
+    // Create stream
+
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+    // Preview the stream in the video element
+
+    videoElement.srcObject = stream;
+    videoElement.play();
 }
